@@ -5,31 +5,27 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
+import github.com.nicolasmaldonadogomez.solochat.ui.components.RenameDialog
+import github.com.nicolasmaldonadogomez.solochat.ui.theme.AppTheme
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.ChatViewModel
+import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.theme.ThemeViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Pantalla principal con la lista de chats de notas.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: ChatViewModel,
+    themeViewModel: ThemeViewModel,
     onChatClick: (NoteChat) -> Unit,
     onChatCreated: (NoteChat) -> Unit
 ) {
@@ -37,11 +33,31 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     
     var showRenameDialog by remember { mutableStateOf<NoteChat?>(null) }
+    var showThemeMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SoloChat - Mis Notas", fontWeight = FontWeight.Bold) },
+                title = { Text("SoloChat", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { showThemeMenu = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                    }
+                    DropdownMenu(
+                        expanded = showThemeMenu,
+                        onDismissRequest = { showThemeMenu = false }
+                    ) {
+                        AppTheme.entries.filter { it != AppTheme.MATRIX || true }.forEach { theme ->
+                            DropdownMenuItem(
+                                text = { Text(theme.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                onClick = {
+                                    themeViewModel.changeTheme(theme)
+                                    showThemeMenu = false
+                                }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -176,37 +192,6 @@ fun ChatItem(
             )
         }
     }
-}
-
-@Composable
-fun RenameDialog(
-    initialName: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var text by remember { mutableStateOf(initialName) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Cambiar nombre") },
-        text = {
-            TextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(text) }) {
-                Text("Confirmar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
 }
 
 private fun formatTimestamp(timestamp: Long): String {

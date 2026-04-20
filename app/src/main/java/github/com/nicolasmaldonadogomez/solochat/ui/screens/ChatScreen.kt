@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import github.com.nicolasmaldonadogomez.solochat.data.Message
 import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
+import github.com.nicolasmaldonadogomez.solochat.ui.components.RenameDialog
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.ChatViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -73,7 +74,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFE5DDD5))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -109,7 +110,8 @@ fun MessageBubble(message: Message) {
         horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
     ) {
         Surface(
-            color = if (isMine) Color(0xFFDCF8C6) else Color.White,
+            color = if (isMine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             shape = RoundedCornerShape(
                 topStart = 12.dp,
                 topEnd = 12.dp,
@@ -120,12 +122,15 @@ fun MessageBubble(message: Message) {
             modifier = Modifier.widthIn(max = 300.dp)
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
-                Text(text = message.text, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = message.text, 
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 
                 Text(
                     text = formatTimestamp(message.timestamp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
                     modifier = Modifier.align(Alignment.End)
                 )
             }
@@ -180,8 +185,8 @@ fun ChatBottomBar(
             FloatingActionButton(
                 onClick = onSend,
                 shape = RoundedCornerShape(24.dp),
-                containerColor = Color(0xFF075E54),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
