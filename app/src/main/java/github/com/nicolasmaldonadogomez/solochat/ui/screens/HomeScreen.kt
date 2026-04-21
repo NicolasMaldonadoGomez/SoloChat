@@ -73,12 +73,13 @@ fun HomeScreen(
     val activity = LocalContext.current as? Activity
     val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
 
+    val context = LocalContext.current
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
             uri?.let {
                 chatToChangeIcon?.let { chat ->
-                    viewModel.updateChatIcon(chat.id, it.toString())
+                    viewModel.updateChatIcon(context, chat, it)
                 }
             }
             chatToChangeIcon = null
@@ -268,7 +269,7 @@ fun HomeScreen(
                 ChatItem(
                     chat = chat, 
                     onClick = { onChatClick(chat) },
-                    onDelete = { viewModel.deleteChat(chat) },
+                    onDelete = { viewModel.deleteChat(context, chat) },
                     onRename = { 
                         isCreationDialog = false
                         showRenameDialog = chat 

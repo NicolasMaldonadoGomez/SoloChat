@@ -4,6 +4,7 @@ Actualmente, tu aplicación tiene dos pantallas principales (ubicadas en la carp
 **1. HomeScreen:** Es la pantalla de entrada. Muestra la lista de todas tus notas (o "chats") con su nombre, el último mensaje y si están fijadas.  
 
 **2. ChatScreen:** Es la pantalla de detalle. Se abre al tocar una nota y es donde puedes escribir y ver todos los mensajes/notas dentro de esa categoría, con ese estilo visual parecido a WhatsApp.
+
 ## Explicación de la Base de Datos (Room)
 Tu sistema de datos sigue el patrón recomendado por Google, separando responsabilidades en varios archivos:
 ### 1. Las Entidades (Los "Qué")
@@ -19,24 +20,28 @@ Tu sistema de datos sigue el patrón recomendado por Google, separando responsab
 ### 5. El ViewModel - ChatViewModel.kt (El "Cerebro de la UI")
    Maneja el estado. Cuando eliges una foto, el ViewModel recibe la URI y le pide al repositorio que la guarde. Como los chats se observan como un `Flow`, la pantalla se actualiza sola al instante.
 
-## 📸 Personalización de Iconos
-Hemos implementado la capacidad de poner fotos a tus chats usando la librería **Coil**.
+## 📸 Soporte de Imágenes y Persistencia
+Hemos implementado un sistema avanzado para el manejo de imágenes (mensajes y iconos).
 
-### ¿Cómo funciona técnicamente?
-1. **Selección:** Usamos el contrato `PickVisualMedia` de Android. Esto abre la galería de forma segura sin pedir permisos de almacenamiento globales.
-2. **Almacenamiento:** Solo guardamos la **URI** de la imagen en la tabla `note_chats`. 
-   * *Ubicación real:* La foto permanece en la galería del usuario. SoloChat solo guarda la "dirección" para leerla.
-3. **Visualización:** Usamos `AsyncImage` de Coil. Esta herramienta carga la imagen de forma eficiente, la recorta en círculo y gestiona la memoria para que la app no se vuelva lenta.
-4. **Fallback:** Si un chat no tiene foto, el sistema muestra automáticamente `Icons.Default.AccountCircle`.
+### 1. Gestión de Almacenamiento (Internal Storage)
+* **Persistencia:** Las imágenes ya no se vinculan solo por URI externa. Se copian a `context.filesDir/images/` para que no se pierdan si el usuario borra la foto original de su galería.
+* **Evitar Duplicados (Hashing):** Usamos **SHA-256** para generar el nombre del archivo (`IMG_[HASH].jpg`). Si envías la misma imagen varias veces, solo se guarda una vez físicamente.
+* **FileProvider:** Configurado para permitir capturas seguras con la cámara y compartir archivos temporales.
 
-## El tema
-Claro, aquí tienes el contenido estructurado y formateado en Markdown con tablas para una lectura clara.
+### 2. Limpieza de Archivos "Huérfanos"
+El sistema mantiene el dispositivo limpio automáticamente:
+* **Al borrar un mensaje:** Si la imagen del mensaje no está siendo usada en ningún otro lugar (otros mensajes o iconos), el archivo se borra del disco.
+* **Al borrar un chat:** Se realiza un escaneo de todas las imágenes vinculadas (iconos y mensajes) y se eliminan aquellas que quedan sin uso global.
+* **Al cambiar icono:** El icono antiguo se elimina si nadie más lo usa.
 
-***
+### 3. Visualización
+* Usamos **Coil** (`AsyncImage`) para cargar imágenes de forma eficiente.
+* **ChatScreen:** Incluye un visor a pantalla completa (`FullscreenImageDialog`) al tocar cualquier imagen.
+* **Previsualización:** La barra inferior muestra una miniatura de la imagen seleccionada antes de ser enviada.
 
 ## 🎨 Diseño de Componentes y Atributos de Color
 
-### 🏠 HomeScree & ChatScree (Estructura General)
+### 🏠 HomeScreen & ChatScreen (Estructura General)
 
 | Elemento UI | Atributo de Color (MaterialTheme.colorScheme) |
 | :--- | :--- |
@@ -45,7 +50,7 @@ Claro, aquí tienes el contenido estructurado y formateado en Markdown con tabla
 | **Iconos / Botones de Acción** | `primary` |
 | **Botón Flotante (FAB)** | `primary` (fondo) y `onPrimary` (icono) |
 
-### 💬 ChatScree (Detalles del Chat)
+### 💬 ChatScreen (Detalles del Chat)
 
 | Elemento UI | Atributo de Color |
 | :--- | :--- |
@@ -78,8 +83,6 @@ Si decides añadir imágenes reales a la carpeta `res/drawable`, puedes usar est
 
 
 ## Guía Visual de Colores por Pantalla
-
-Aquí tienes el detalle exacto de qué color de tu código (`Theme.kt`) se usa en cada rincón de la aplicación:
 
 ### 🏠 HomeScreen
 *   **Barra superior (Título)**

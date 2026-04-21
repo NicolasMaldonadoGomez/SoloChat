@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import github.com.nicolasmaldonadogomez.solochat.data.ChatRepository
 import github.com.nicolasmaldonadogomez.solochat.data.Message
 import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
+import github.com.nicolasmaldonadogomez.solochat.utils.ImageStorageUtils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import android.content.Context
 import java.util.Calendar
 
 /**
@@ -68,9 +70,17 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
         }
     }
 
-    fun updateChatIcon(chatId: Long, iconUrl: String?) {
+    fun updateChatIcon(context: Context, chat: NoteChat, iconUri: android.net.Uri?) {
         viewModelScope.launch {
-            repository.updateChatIcon(chatId, iconUrl)
+            val oldIcon = chat.iconUrl
+            val newPath = iconUri?.let { ImageStorageUtils.saveImageToInternalStorage(context, it) }
+            
+            repository.updateChatIcon(chat.id, newPath)
+            
+            // Limpieza: borrar el icono viejo si ya no se usa en ningún chat ni mensaje
+            if (oldIcon != null && oldIcon != newPath) {
+                cleanupOrphanedImage(context, oldIcon)
+            }
         }
     }
 
@@ -124,9 +134,28 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
         }
     }
 
-    fun deleteMessage(message: Message) {
+    fun deleteMessage(context: Context, message: Message) {
         viewModelScope.launch {
+            val imagePath = message.imageUrl
             repository.deleteMessage(message)
+            
+            // Limpieza: intentar borrar la imagen si era un mensaje con foto
+            if (imagePath != null) {
+                cleanupOrphanedImage(context, imagePath)
+            }
+        }
+    }
+
+    private suspend fun cleanupOrphanedImage(context: Context, path: String) {
+        ImageStorageUtils.deleteImageIfOrphaned(context, path) { imagePath ->
+            // Verificamos si alguien más está usando esta imagen en la DB
+            // Corrutina bloqueante controlada para el callback
+            val used = kotlinx.coroutines.runBlocking {
+                val isUsedInChats = repository.isImageUsedInAnyChat(imagePath)
+                val isUsedInMessages = repository.isImageUsedInAnyMessage(imagePath)
+                isUsedInChats || isUsedInMessages
+            }
+            used
         }
     }
 
@@ -148,11 +177,25 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
     /**
      * Borra un chat y todos sus mensajes (gracias a ForeignKey CASCADE).
      */
-    fun deleteChat(chat: NoteChat) {
+    fun deleteChat(context: Context, chat: NoteChat) {
         viewModelScope.launch {
+            // Guardamos las referencias a imágenes antes de borrar
+            val iconPath = chat.iconUrl
+            val messagesWithImages = repository.getMessagesForChat(chat.id).first().mapNotNull { it.imageUrl }
+            
             repository.deleteChat(chat)
+            
             if (_selectedChatId.value == chat.id) {
                 _selectedChatId.value = null
+            }
+
+            // Limpieza del icono
+            if (iconPath != null) {
+                cleanupOrphanedImage(context, iconPath)
+            }
+            // Limpieza de imágenes de mensajes
+            messagesWithImages.forEach { path ->
+                cleanupOrphanedImage(context, path)
             }
         }
     }

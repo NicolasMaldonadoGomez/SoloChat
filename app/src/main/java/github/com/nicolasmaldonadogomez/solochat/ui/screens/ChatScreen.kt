@@ -246,7 +246,7 @@ fun ChatScreen(
             dismissButton = {
                 Row {
                     TextButton(onClick = { 
-                        viewModel.deleteMessage(messageToOptions!!)
+                        viewModel.deleteMessage(context, messageToOptions!!)
                         messageToOptions = null 
                     }) {
                         Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)

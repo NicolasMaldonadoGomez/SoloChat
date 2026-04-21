@@ -62,4 +62,12 @@ class ChatRepository(private val chatDao: ChatDao) {
     suspend fun updateMessage(message: Message) {
         chatDao.updateMessage(message)
     }
+
+    suspend fun isImageUsedInAnyMessage(imageUrl: String): Boolean {
+        return chatDao.isImageUsedInMessages(imageUrl)
+    }
+
+    suspend fun isImageUsedInAnyChat(iconUrl: String): Boolean {
+        return chatDao.isImageUsedInChats(iconUrl)
+    }
 }

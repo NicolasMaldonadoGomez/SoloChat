@@ -48,6 +48,12 @@ interface ChatDao {
     @Delete
     suspend fun deleteMessage(message: Message)
 
+    @Query("SELECT EXISTS(SELECT 1 FROM messages WHERE imageUrl = :imageUrl LIMIT 1)")
+    suspend fun isImageUsedInMessages(imageUrl: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM note_chats WHERE iconUrl = :iconUrl LIMIT 1)")
+    suspend fun isImageUsedInChats(iconUrl: String): Boolean
+
     // --- Operaciones Combinadas ---
 
     /**
