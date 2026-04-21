@@ -1,5 +1,8 @@
 package github.com.nicolasmaldonadogomez.solochat.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -18,17 +22,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import github.com.nicolasmaldonadogomez.solochat.R
 import github.com.nicolasmaldonadogomez.solochat.data.Message
 import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
 import github.com.nicolasmaldonadogomez.solochat.ui.components.RenameDialog
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.ChatViewModel
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.theme.ThemeViewModel
+import github.com.nicolasmaldonadogomez.solochat.utils.ImageStorageUtils
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.material3.RichText
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,11 +55,53 @@ fun ChatScreen(
 ) {
     val messages by viewModel.selectedChatMessages.collectAsState()
     val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     var textState by remember { mutableStateOf("") }
     var showRenameDialog by remember { mutableStateOf(false) }
     var messageToEdit by remember { mutableStateOf<Message?>(null) }
     var messageToOptions by remember { mutableStateOf<Message?>(null) }
+    var selectedImageUrl by remember { mutableStateOf<String?>(null) }
+    var pendingImageUrl by remember { mutableStateOf<String?>(null) }
+
+    var tempCameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                val savedPath = ImageStorageUtils.saveImageToInternalStorage(context, it)
+                if (savedPath != null) {
+                    pendingImageUrl = savedPath
+                }
+            }
+        }
+    )
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success) {
+                tempCameraUri?.let { uri ->
+                    val savedPath = ImageStorageUtils.saveImageToInternalStorage(context, uri)
+                    if (savedPath != null) {
+                        pendingImageUrl = savedPath
+                    }
+                }
+            }
+        }
+    )
+
+    fun takePhoto() {
+        val tempFile = File.createTempFile("TEMP_IMG_", ".jpg", context.cacheDir)
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            tempFile
+        )
+        tempCameraUri = uri
+        cameraLauncher.launch(uri)
+    }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -108,11 +162,20 @@ fun ChatScreen(
                 text = if (messageToEdit != null) "" else textState,
                 onTextChange = { textState = it },
                 onSend = {
-                    if (textState.isNotBlank()) {
-                        viewModel.sendMessage(chat, textState)
+                    if (textState.isNotBlank() || pendingImageUrl != null) {
+                        viewModel.sendMessage(chat, textState, imageUrl = pendingImageUrl)
                         textState = ""
+                        pendingImageUrl = null
                     }
                 },
+                onGalleryClick = {
+                    galleryLauncher.launch("image/*")
+                },
+                onCameraClick = {
+                    takePhoto()
+                },
+                pendingImageUrl = pendingImageUrl,
+                onCancelImage = { pendingImageUrl = null },
                 fontSizeScale = fontSizeScale
             )
         }
@@ -146,6 +209,7 @@ fun ChatScreen(
                     MessageBubble(
                         message = message,
                         onLongClick = { messageToOptions = message },
+                        onImageClick = { selectedImageUrl = it },
                         fontSizeScale = fontSizeScale
                     )
                 }
@@ -210,11 +274,23 @@ fun ChatScreen(
             }
         )
     }
+
+    if (selectedImageUrl != null) {
+        FullscreenImageDialog(
+            imageUrl = selectedImageUrl!!,
+            onDismiss = { selectedImageUrl = null }
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MessageBubble(message: Message, onLongClick: () -> Unit, fontSizeScale: Float = 1.0f) {
+fun MessageBubble(
+    message: Message,
+    onLongClick: () -> Unit,
+    onImageClick: (String) -> Unit,
+    fontSizeScale: Float = 1.0f
+) {
     val isMine = true 
 
     Column(
@@ -239,8 +315,24 @@ fun MessageBubble(message: Message, onLongClick: () -> Unit, fontSizeScale: Floa
                 )
         ) {
             Column(modifier = Modifier.padding((8 * fontSizeScale).dp)) {
-                RichText {
-                    Markdown(content = message.text)
+                if (!message.imageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = message.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = (250 * fontSizeScale).dp)
+                            .clip(RoundedCornerShape((8 * fontSizeScale).dp))
+                            .padding(bottom = (4 * fontSizeScale).dp)
+                            .clickable { onImageClick(message.imageUrl) },
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                if (message.text.isNotBlank()) {
+                    RichText {
+                        Markdown(content = message.text)
+                    }
                 }
                 
                 Text(
@@ -289,54 +381,93 @@ fun ChatBottomBar(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
+    onGalleryClick: () -> Unit,
+    onCameraClick: () -> Unit,
+    pendingImageUrl: String? = null,
+    onCancelImage: () -> Unit = {},
     fontSizeScale: Float = 1.0f
 ) {
     Surface(
         tonalElevation = 2.dp,
         modifier = Modifier.imePadding()
     ) {
-        Row(
-            modifier = Modifier
-                .padding((8 * fontSizeScale).dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column {
+            if (pendingImageUrl != null) {
+                Box(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    AsyncImage(
+                        model = pendingImageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    IconButton(
+                        onClick = onCancelImage,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(24.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
             Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape((24 * fontSizeScale).dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = (12 * fontSizeScale).dp, vertical = (4 * fontSizeScale).dp),
+                    .padding((8 * fontSizeScale).dp)
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* TODO: Adjuntar imagen */ }) {
-                    Icon(Icons.Default.AttachFile, contentDescription = stringResource(R.string.attach_file))
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape((24 * fontSizeScale).dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = (12 * fontSizeScale).dp, vertical = (4 * fontSizeScale).dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onGalleryClick) {
+                        Icon(Icons.Default.Image, contentDescription = stringResource(R.string.gallery))
+                    }
+                    IconButton(onClick = onCameraClick) {
+                        Icon(Icons.Default.PhotoCamera, contentDescription = stringResource(R.string.camera))
+                    }
+                    TextField(
+                        value = text,
+                        onValueChange = onTextChange,
+                        placeholder = { Text(stringResource(R.string.type_message)) },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                TextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    placeholder = { Text(stringResource(R.string.type_message)) },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            
-            Spacer(modifier = Modifier.width((8 * fontSizeScale).dp))
-            
-            FloatingActionButton(
-                onClick = onSend,
-                shape = RoundedCornerShape((24 * fontSizeScale).dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size((48 * fontSizeScale).dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.send))
+                
+                Spacer(modifier = Modifier.width((8 * fontSizeScale).dp))
+                
+                FloatingActionButton(
+                    onClick = onSend,
+                    shape = RoundedCornerShape((24 * fontSizeScale).dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size((48 * fontSizeScale).dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.send))
+                }
             }
         }
     }
@@ -407,4 +538,27 @@ fun shouldShowDateHeader(message: Message, prevMessage: Message?): Boolean {
 private fun formatTimestamp(timestamp: Long): String {
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+@Composable
+fun FullscreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
 }

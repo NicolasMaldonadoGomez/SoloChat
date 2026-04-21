@@ -20,6 +20,8 @@
     <string name="message_options_desc">¿Qué deseas hacer con este mensaje?</string>
     <string name="edit_message">Editar mensaje</string>
     <string name="attach_file">Adjuntar</string>
+    <string name="gallery">Galería</string>
+    <string name="camera">Cámara</string>
     <string name="send">Enviar</string>
     <string name="back">Volver</string>
     <string name="unpin_desc">Desfijar</string>

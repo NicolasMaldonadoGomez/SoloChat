@@ -74,7 +74,7 @@ fun HomeScreen(
     val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
+        contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
             uri?.let {
                 chatToChangeIcon?.let { chat ->
@@ -276,9 +276,7 @@ fun HomeScreen(
                     onPin = { viewModel.togglePin(chat) },
                     onChangeIcon = {
                         chatToChangeIcon = chat
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
+                        photoPickerLauncher.launch("image/*")
                     },
                     viewModel = viewModel,
                     fontSizeScale = fontSizeScale
