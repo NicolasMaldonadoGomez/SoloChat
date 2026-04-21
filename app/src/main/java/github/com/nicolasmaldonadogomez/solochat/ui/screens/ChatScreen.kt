@@ -1,15 +1,16 @@
 package github.com.nicolasmaldonadogomez.solochat.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,29 +38,60 @@ fun ChatScreen(
     val messages by viewModel.selectedChatMessages.collectAsState()
     var textState by remember { mutableStateOf("") }
     var showRenameDialog by remember { mutableStateOf(false) }
+    var messageToEdit by remember { mutableStateOf<Message?>(null) }
+    var messageToOptions by remember { mutableStateOf<Message?>(null) }
+
+    val pinnedMessage = messages.find { it.id == chat.pinnedMessageId }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column(modifier = Modifier.clickable { showRenameDialog = true }) {
-                        Text(chat.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("en línea", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+            Column {
+                TopAppBar(
+                    title = {
+                        Column(modifier = Modifier.clickable { showRenameDialog = true }) {
+                            Text(chat.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("en línea", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 )
-            )
+                if (pinnedMessage != null) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.PushPin, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Mensaje fijado", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Text(pinnedMessage.text, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                            }
+                            IconButton(onClick = { 
+                                viewModel.pinMessage(chat, null)
+                                onChatUpdated(chat.copy(pinnedMessageId = null))
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Desfijar")
+                            }
+                        }
+                    }
+                }
+            }
         },
         bottomBar = {
             ChatBottomBar(
-                text = textState,
+                text = if (messageToEdit != null) "" else textState,
                 onTextChange = { textState = it },
                 onSend = {
                     if (textState.isNotBlank()) {
@@ -81,8 +113,11 @@ fun ChatScreen(
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(messages) { message ->
-                    MessageBubble(message = message)
+                items(messages, key = { it.id }) { message ->
+                    MessageBubble(
+                        message = message,
+                        onLongClick = { messageToOptions = message }
+                    )
                 }
             }
         }
@@ -99,10 +134,57 @@ fun ChatScreen(
             }
         )
     }
+
+    if (messageToOptions != null) {
+        AlertDialog(
+            onDismissRequest = { messageToOptions = null },
+            title = { Text("Opciones de mensaje") },
+            text = { Text("¿Qué deseas hacer con este mensaje?") },
+            confirmButton = {
+                TextButton(onClick = { 
+                    messageToEdit = messageToOptions
+                    textState = messageToOptions?.text ?: ""
+                    messageToOptions = null 
+                }) {
+                    Text("Editar")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { 
+                        viewModel.deleteMessage(messageToOptions!!)
+                        messageToOptions = null 
+                    }) {
+                        Text("Borrar", color = MaterialTheme.colorScheme.error)
+                    }
+                    TextButton(onClick = { 
+                        val newPinnedId = if (chat.pinnedMessageId == messageToOptions?.id) null else messageToOptions?.id
+                        viewModel.pinMessage(chat, newPinnedId)
+                        onChatUpdated(chat.copy(pinnedMessageId = newPinnedId))
+                        messageToOptions = null 
+                    }) {
+                        Text(if (chat.pinnedMessageId == messageToOptions?.id) "Desfijar" else "Fijar")
+                    }
+                }
+            }
+        )
+    }
+
+    if (messageToEdit != null) {
+        EditMessageDialog(
+            initialText = messageToEdit!!.text,
+            onDismiss = { messageToEdit = null },
+            onConfirm = { newText ->
+                viewModel.editMessage(messageToEdit!!, newText)
+                messageToEdit = null
+            }
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MessageBubble(message: Message) {
+fun MessageBubble(message: Message, onLongClick: () -> Unit) {
     val isMine = true 
 
     Column(
@@ -119,7 +201,12 @@ fun MessageBubble(message: Message) {
                 bottomEnd = if (isMine) 0.dp else 12.dp
             ),
             tonalElevation = 1.dp,
-            modifier = Modifier.widthIn(max = 300.dp)
+            modifier = Modifier
+                .widthIn(max = 300.dp)
+                .combinedClickable(
+                    onClick = { /* Opcional: ver detalles */ },
+                    onLongClick = onLongClick
+                )
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
@@ -136,6 +223,36 @@ fun MessageBubble(message: Message) {
             }
         }
     }
+}
+
+@Composable
+fun EditMessageDialog(
+    initialText: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var text by remember { mutableStateOf(initialText) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar mensaje") },
+        text = {
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text) }) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable

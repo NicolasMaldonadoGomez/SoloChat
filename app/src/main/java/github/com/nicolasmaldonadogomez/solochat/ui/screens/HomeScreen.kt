@@ -33,6 +33,7 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     
     var showRenameDialog by remember { mutableStateOf<NoteChat?>(null) }
+    var isCreationDialog by remember { mutableStateOf(false) }
     var showThemeMenu by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -65,11 +66,8 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { 
-                scope.launch {
-                    val newTitle = "Nueva Nota ${chats.size + 1}"
-                    val id = viewModel.createChat(newTitle)
-                    onChatCreated(NoteChat(id = id, title = newTitle))
-                }
+                isCreationDialog = true
+                showRenameDialog = NoteChat(title = "")
             }) {
                 Icon(Icons.Default.Add, contentDescription = "Nuevo Chat")
             }
@@ -85,7 +83,10 @@ fun HomeScreen(
                     chat = chat, 
                     onClick = { onChatClick(chat) },
                     onDelete = { viewModel.deleteChat(chat) },
-                    onRename = { showRenameDialog = chat },
+                    onRename = { 
+                        isCreationDialog = false
+                        showRenameDialog = chat 
+                    },
                     onPin = { viewModel.togglePin(chat) },
                     viewModel = viewModel
                 )
@@ -97,10 +98,22 @@ fun HomeScreen(
     if (showRenameDialog != null) {
         RenameDialog(
             initialName = showRenameDialog!!.title,
+            title = if (isCreationDialog) "Nueva nota" else "Cambiar nombre",
             onDismiss = { showRenameDialog = null },
             onConfirm = { newName ->
-                viewModel.renameChat(showRenameDialog!!, newName)
-                showRenameDialog = null
+                val finalName = if (newName.isBlank()) {
+                    if (isCreationDialog) "Nueva Nota ${chats.size + 1}" else showRenameDialog!!.title
+                } else newName
+
+                scope.launch {
+                    if (isCreationDialog) {
+                        val id = viewModel.createChat(finalName)
+                        onChatCreated(NoteChat(id = id, title = finalName))
+                    } else {
+                        viewModel.renameChat(showRenameDialog!!, finalName)
+                    }
+                    showRenameDialog = null
+                }
             }
         )
     }

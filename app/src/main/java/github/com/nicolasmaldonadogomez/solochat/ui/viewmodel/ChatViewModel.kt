@@ -87,6 +87,27 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
         }
     }
 
+    fun deleteMessage(message: Message) {
+        viewModelScope.launch {
+            repository.deleteMessage(message)
+        }
+    }
+
+    fun editMessage(message: Message, newText: String) {
+        viewModelScope.launch {
+            repository.updateMessage(message.copy(text = newText))
+        }
+    }
+
+    fun pinMessage(chat: NoteChat, messageId: Long?) {
+        viewModelScope.launch {
+            val updatedChat = chat.copy(pinnedMessageId = messageId)
+            repository.updateChat(updatedChat)
+            // Emitimos el cambio manualmente si es necesario, 
+            // pero el Flow de allChats lo hará automáticamente.
+        }
+    }
+
     /**
      * Borra un chat y todos sus mensajes (gracias a ForeignKey CASCADE).
      */

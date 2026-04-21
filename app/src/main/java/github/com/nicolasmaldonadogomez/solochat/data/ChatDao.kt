@@ -39,6 +39,9 @@ interface ChatDao {
     @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp ASC")
     fun getMessagesForChat(chatId: Long): Flow<List<Message>>
 
+    @Update
+    suspend fun updateMessage(message: Message)
+
     @Delete
     suspend fun deleteMessage(message: Message)
 

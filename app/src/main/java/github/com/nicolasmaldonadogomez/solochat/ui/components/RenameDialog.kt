@@ -7,13 +7,14 @@ import androidx.compose.runtime.*
 fun RenameDialog(
     initialName: String,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
+    title: String = "Cambiar nombre"
 ) {
     var text by remember { mutableStateOf(initialName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Cambiar nombre") },
+        title = { Text(title) },
         text = {
             TextField(
                 value = text,
