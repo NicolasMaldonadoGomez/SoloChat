@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "github.com.nicolasmaldonadogomez.solochat"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "github.com.nicolasmaldonadogomez.solochat"
@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.markdown.richtext)
+    implementation(libs.markdown.ui)
 
     // Room
     implementation(libs.room.runtime)

@@ -4,6 +4,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,7 +39,17 @@ fun HomeScreen(
     onChatCreated: (NoteChat) -> Unit
 ) {
     val chats by viewModel.allChats.collectAsState()
+    val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    
+    // Scrollear al inicio cuando se cargan los chats por primera vez (al iniciar la app)
+    var initialScrollDone by remember { mutableStateOf(false) }
+    LaunchedEffect(chats) {
+        if (chats.isNotEmpty() && !initialScrollDone) {
+            listState.scrollToItem(0)
+            initialScrollDone = true
+        }
+    }
     
     var showRenameDialog by remember { mutableStateOf<NoteChat?>(null) }
     var isCreationDialog by remember { mutableStateOf(false) }
@@ -223,6 +234,7 @@ fun HomeScreen(
         }
     ) { padding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)

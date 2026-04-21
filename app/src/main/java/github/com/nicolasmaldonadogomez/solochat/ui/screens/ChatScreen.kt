@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -26,6 +27,8 @@ import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
 import github.com.nicolasmaldonadogomez.solochat.ui.components.RenameDialog
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.ChatViewModel
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.theme.ThemeViewModel
+import com.halilibo.richtext.markdown.Markdown
+import com.halilibo.richtext.ui.material3.RichText
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -40,10 +43,17 @@ fun ChatScreen(
 ) {
     val messages by viewModel.selectedChatMessages.collectAsState()
     val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
+    val listState = rememberLazyListState()
     var textState by remember { mutableStateOf("") }
     var showRenameDialog by remember { mutableStateOf(false) }
     var messageToEdit by remember { mutableStateOf<Message?>(null) }
     var messageToOptions by remember { mutableStateOf<Message?>(null) }
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
 
     val pinnedMessage = messages.find { it.id == chat.pinnedMessageId }
 
@@ -114,6 +124,7 @@ fun ChatScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues((12 * fontSizeScale).dp),
                 verticalArrangement = Arrangement.spacedBy((8 * fontSizeScale).dp)
@@ -228,10 +239,9 @@ fun MessageBubble(message: Message, onLongClick: () -> Unit, fontSizeScale: Floa
                 )
         ) {
             Column(modifier = Modifier.padding((8 * fontSizeScale).dp)) {
-                Text(
-                    text = message.text, 
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                RichText {
+                    Markdown(content = message.text)
+                }
                 
                 Text(
                     text = formatTimestamp(message.timestamp),
