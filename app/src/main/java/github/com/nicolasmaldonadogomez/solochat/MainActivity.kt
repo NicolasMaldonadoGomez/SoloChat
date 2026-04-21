@@ -1,7 +1,7 @@
 package github.com.nicolasmaldonadogomez.solochat
 
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
@@ -15,7 +15,7 @@ import github.com.nicolasmaldonadogomez.solochat.ui.theme.SoloChatTheme
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.ChatViewModel
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.theme.ThemeViewModel
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -27,11 +27,15 @@ class MainActivity : ComponentActivity() {
         val themePreferences = ThemePreferences(this)
         val themeViewModel = ThemeViewModel(themePreferences)
 
+        // Crear datos de prueba una sola vez (puedes comentar esto después de la primera ejecución)
+        chatViewModel.createTestData()
+
         enableEdgeToEdge()
         setContent {
             val currentTheme by themeViewModel.themeState.collectAsState()
+            val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
             
-            SoloChatTheme(theme = currentTheme) {
+            SoloChatTheme(theme = currentTheme, fontSizeScale = fontSizeScale) {
                 var currentChat by remember { mutableStateOf<NoteChat?>(null) }
 
                 if (currentChat == null) {
@@ -51,6 +55,7 @@ class MainActivity : ComponentActivity() {
                     ChatScreen(
                         chat = currentChat!!,
                         viewModel = chatViewModel,
+                        themeViewModel = themeViewModel,
                         onBack = { currentChat = null },
                         onChatUpdated = { updatedChat ->
                             currentChat = updatedChat

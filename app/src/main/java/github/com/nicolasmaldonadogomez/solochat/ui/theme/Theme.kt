@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme( )
@@ -50,6 +51,7 @@ private val MatrixColorScheme = darkColorScheme(
 @Composable
 fun SoloChatTheme(
     theme: AppTheme = AppTheme.SYSTEM,
+    fontSizeScale: Float = 1.0f,
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -71,6 +73,25 @@ fun SoloChatTheme(
         AppTheme.MATRIX -> MatrixColorScheme
     }
 
+    val baseTypography = Typography
+    val scaledTypography = Typography(
+        displayLarge = baseTypography.displayLarge.copy(fontSize = baseTypography.displayLarge.fontSize * fontSizeScale),
+        displayMedium = baseTypography.displayMedium.copy(fontSize = baseTypography.displayMedium.fontSize * fontSizeScale),
+        displaySmall = baseTypography.displaySmall.copy(fontSize = baseTypography.displaySmall.fontSize * fontSizeScale),
+        headlineLarge = baseTypography.headlineLarge.copy(fontSize = baseTypography.headlineLarge.fontSize * fontSizeScale),
+        headlineMedium = baseTypography.headlineMedium.copy(fontSize = baseTypography.headlineMedium.fontSize * fontSizeScale),
+        headlineSmall = baseTypography.headlineSmall.copy(fontSize = baseTypography.headlineSmall.fontSize * fontSizeScale),
+        bodyLarge = baseTypography.bodyLarge.copy(fontSize = baseTypography.bodyLarge.fontSize * fontSizeScale),
+        bodyMedium = baseTypography.bodyMedium.copy(fontSize = baseTypography.bodyMedium.fontSize * fontSizeScale),
+        bodySmall = baseTypography.bodySmall.copy(fontSize = baseTypography.bodySmall.fontSize * fontSizeScale),
+        titleLarge = baseTypography.titleLarge.copy(fontSize = baseTypography.titleLarge.fontSize * fontSizeScale),
+        titleMedium = baseTypography.titleMedium.copy(fontSize = baseTypography.titleMedium.fontSize * fontSizeScale),
+        titleSmall = baseTypography.titleSmall.copy(fontSize = baseTypography.titleSmall.fontSize * fontSizeScale),
+        labelLarge = baseTypography.labelLarge.copy(fontSize = baseTypography.labelLarge.fontSize * fontSizeScale),
+        labelMedium = baseTypography.labelMedium.copy(fontSize = baseTypography.labelMedium.fontSize * fontSizeScale),
+        labelSmall = baseTypography.labelSmall.copy(fontSize = baseTypography.labelSmall.fontSize * fontSizeScale)
+    )
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -82,7 +103,7 @@ fun SoloChatTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = scaledTypography,
         content = content
     )
 }

@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">SoloChat</string>
+    <string name="settings">Ajustes</string>
+    <string name="themes">Temas</string>
+    <string name="type_message">Escribe un mensaje...</string>
+    <string name="new_chat">Nuevo Chat</string>
+    <string name="online">en línea</string>
+    <string name="pinned_message">Mensaje fijado</string>
+    <string name="rename_chat">Cambiar nombre</string>
+    <string name="pin">Fijar</string>
+    <string name="unpin">Desfijar</string>
+    <string name="delete">Borrar</string>
+    <string name="edit">Editar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="new_note">Nueva nota</string>
+    <string name="rename">Cambiar nombre</string>
+    <string name="placeholder_message">Toca para escribir...</string>
+    <string name="message_options">Opciones de mensaje</string>
+    <string name="message_options_desc">¿Qué deseas hacer con este mensaje?</string>
+    <string name="edit_message">Editar mensaje</string>
+    <string name="attach_file">Adjuntar</string>
+    <string name="send">Enviar</string>
+    <string name="back">Volver</string>
+    <string name="unpin_desc">Desfijar</string>
+    <string name="config_desc">Configuración</string>
+    <string name="languages">Idiomas</string>
+    <string name="language_es">Español</string>
+    <string name="language_en">Inglés</string>
+    <string name="font_size">Tamaño de letra</string>
+    <string name="turn_off">Apagar SoloChat</string>
+    <string name="font_size_very_small">Muy pequeño</string>
+    <string name="font_size_small">Pequeño</string>
+    <string name="font_size_normal">Normal</string>
+    <string name="font_size_large">Grande</string>
+    <string name="font_size_very_large">Muy grande</string>
+</resources>

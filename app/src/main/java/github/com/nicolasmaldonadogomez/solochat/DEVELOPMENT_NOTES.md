@@ -1,5 +1,5 @@
 # Notas de desarrollo
-## pantallas principales
+## Pantallas principales
 Actualmente, tu aplicación tiene dos pantallas principales (ubicadas en la carpeta ui/screens):   
 **1. HomeScreen:** Es la pantalla de entrada. Muestra la lista de todas tus notas (o "chats") con su nombre, el último mensaje y si están fijadas.  
 
@@ -65,3 +65,49 @@ Si decides añadir imágenes reales a la carpeta `res/drawable`, puedes usar est
 ***
 
 **Nota Técnica:** En el código, el color del título de la barra superior se maneja internamente por el componente `TopAppBar` usando `onPrimaryContainer` cuando el fondo es `primaryContainer`, asegurando que siempre sea legible.
+
+
+## Guía Visual de Colores por Pantalla
+
+Aquí tienes el detalle exacto de qué color de tu código (`Theme.kt`) se usa en cada rincón de la aplicación:
+
+### 🏠 HomeScreen
+*   **Barra superior (Título)**
+    *   Color de fondo: `primaryContainer`
+    *   Color de letras título: `onPrimaryContainer`
+    *   Ícono de engranaje: `onSurfaceVariant`
+*   **Lista de Chats**
+    *   Color de fondo: `background`
+    *   Color de fuente principal (Nombre de la nota): `onBackground`
+    *   Color de fuente segunda línea y hora: `outline`
+    *   Color de separador: `outline` (grosor 0.5dp)
+*   **Botón nuevo chat (FAB)**
+    *   Color de fondo: `primaryContainer`
+    *   Color del signo de más (+): `onPrimaryContainer`
+
+### 💬 ChatScreen
+*   **Barra superior (Título)**
+    *   Color de fondo: `primaryContainer`
+    *   Color de letras título: `onPrimaryContainer`
+    *   Subtítulo ("en línea"): `primary`
+*   **Lugar de mensajes (Fondo)**
+    *   Color de fondo: `background`
+*   **Mensajes (Burbujas)**
+    *   Color de fondo: `primaryContainer` (tus mensajes)
+    *   Color de fuente principal: `onPrimaryContainer`
+    *   Color de fuente hora: `onPrimaryContainer` (con 60% de opacidad)
+*   **Barra inferior y escritura**
+    *   Color de fondo base: `surface`
+    *   Burbuja para escribir: `surfaceVariant`
+    *   Color de fuente principal: `onSurfaceVariant`
+    *   Color del icono de clip (adjuntar): `onSurfaceVariant`
+*   **Botón Enviar (Círculo)**
+    *   Color de Fondo: `primary`
+    *   Color del Símbolo de flecha: `onPrimary`
+
+### 🛠️ Diálogos (Renombrar / Opciones)
+*   **Color de fondo:** `surface`
+*   **Color de Título y Letra:** `onSurface`
+*   **Acción de Borrar:** `error` (Rojo)
+
+> **Nota:** Estos colores se adaptan automáticamente cuando cambias el tema en la configuración (WhatsApp, Telegram, Matrix, etc.) porque están vinculados a los nombres del `ColorScheme`.

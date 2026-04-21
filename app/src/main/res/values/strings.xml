@@ -1,3 +1,37 @@
 <resources>
     <string name="app_name">SoloChat</string>
+    <string name="settings">Settings</string>
+    <string name="themes">Themes</string>
+    <string name="type_message">Type a message...</string>
+    <string name="new_chat">New Chat</string>
+    <string name="online">online</string>
+    <string name="pinned_message">Pinned message</string>
+    <string name="rename_chat">Rename chat</string>
+    <string name="pin">Pin</string>
+    <string name="unpin">Unpin</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="new_note">New note</string>
+    <string name="rename">Rename</string>
+    <string name="placeholder_message">Tap to write...</string>
+    <string name="message_options">Message options</string>
+    <string name="message_options_desc">What do you want to do with this message?</string>
+    <string name="edit_message">Edit message</string>
+    <string name="attach_file">Attach file</string>
+    <string name="send">Send</string>
+    <string name="back">Back</string>
+    <string name="unpin_desc">Unpin</string>
+    <string name="config_desc">Settings</string>
+    <string name="languages">Languages</string>
+    <string name="language_es">Spanish</string>
+    <string name="language_en">English</string>
+    <string name="font_size">Font Size</string>
+    <string name="turn_off">Turn off SoloChat</string>
+    <string name="font_size_very_small">Very Small</string>
+    <string name="font_size_small">Small</string>
+    <string name="font_size_normal">Normal</string>
+    <string name="font_size_large">Large</string>
+    <string name="font_size_very_large">Very Large</string>
 </resources>

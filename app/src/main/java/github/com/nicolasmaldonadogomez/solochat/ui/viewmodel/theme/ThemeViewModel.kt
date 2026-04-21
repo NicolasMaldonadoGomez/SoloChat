@@ -18,9 +18,22 @@ class ThemeViewModel(private val themePreferences: ThemePreferences) : ViewModel
             initialValue = AppTheme.SYSTEM
         )
 
+    val fontSizeState: StateFlow<Float> = themePreferences.fontSizeFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 1.0f
+        )
+
     fun changeTheme(newTheme: AppTheme) {
         viewModelScope.launch {
             themePreferences.saveTheme(newTheme)
+        }
+    }
+
+    fun changeFontSize(scale: Float) {
+        viewModelScope.launch {
+            themePreferences.saveFontSize(scale)
         }
     }
 }

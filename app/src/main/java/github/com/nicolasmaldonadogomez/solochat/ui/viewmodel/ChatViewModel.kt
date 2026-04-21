@@ -8,6 +8,7 @@ import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 /**
  * ViewModel que gestiona la lógica de UI para la app de notas tipo WhatsApp.
@@ -75,15 +76,45 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
      * Envía un mensaje en un chat específico.
      * Al ser una app de notas, el "envío" es simplemente guardar la nota.
      */
-    fun sendMessage(chat: NoteChat, text: String, imageUrl: String? = null) {
+    fun sendMessage(chat: NoteChat, text: String, imageUrl: String? = null, timestamp: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             val message = Message(
                 chatId = chat.id,
                 text = text,
                 imageUrl = imageUrl,
-                timestamp = System.currentTimeMillis()
+                timestamp = timestamp
             )
             repository.sendMessage(message, chat)
+        }
+    }
+
+    fun createTestData() {
+        viewModelScope.launch {
+            val chatId = createChat("Prueba de Fechas")
+            val chat = NoteChat(id = chatId, title = "Prueba de Fechas")
+            
+            val calendar = Calendar.getInstance()
+
+            // Mensajes 2022
+            calendar.set(2022, Calendar.JANUARY, 15, 10, 30)
+            sendMessage(chat, "Hola, este es un mensaje de 2022", timestamp = calendar.timeInMillis)
+            calendar.set(2022, Calendar.JANUARY, 15, 10, 35)
+            sendMessage(chat, "Otro mensaje del mismo día en 2022", timestamp = calendar.timeInMillis)
+            
+            calendar.set(2022, Calendar.MAY, 20, 15, 0)
+            sendMessage(chat, "Mensaje de mayo 2022", timestamp = calendar.timeInMillis)
+
+            // Mensajes 2023
+            calendar.set(2023, Calendar.AUGUST, 10, 9, 0)
+            sendMessage(chat, "Ya estamos en 2023", timestamp = calendar.timeInMillis)
+            
+            // Mensajes 2024 (Actual)
+            calendar.set(2024, Calendar.JANUARY, 1, 0, 1)
+            sendMessage(chat, "¡Feliz 2024!", timestamp = calendar.timeInMillis)
+            
+            // Mensajes 2025 (Futuro)
+            calendar.set(2025, Calendar.DECEMBER, 25, 12, 0)
+            sendMessage(chat, "Mensaje desde el futuro: Navidad 2025", timestamp = calendar.timeInMillis)
         }
     }
 
