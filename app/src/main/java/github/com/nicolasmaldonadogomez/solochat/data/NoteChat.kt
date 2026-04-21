@@ -18,5 +18,6 @@ data class NoteChat(
     val title: String,
     val lastModified: Long = System.currentTimeMillis(),
     val isPinned: Boolean = false,
-    val pinnedMessageId: Long? = null
+    val pinnedMessageId: Long? = null,
+    val iconUrl: String? = null
 )

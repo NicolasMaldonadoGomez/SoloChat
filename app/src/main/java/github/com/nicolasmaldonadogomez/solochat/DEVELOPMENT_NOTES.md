@@ -8,17 +8,27 @@ Actualmente, tu aplicación tiene dos pantallas principales (ubicadas en la carp
 Tu sistema de datos sigue el patrón recomendado por Google, separando responsabilidades en varios archivos:
 ### 1. Las Entidades (Los "Qué")
    Son las tablas de tu base de datos.  
-   • **NoteChat.kt:** Define la tabla de "Conversaciones". Guarda el título, la fecha de modificación, si está fijada (isPinned) y su ID único.  
+   • **NoteChat.kt:** Define la tabla de "Conversaciones". Guarda el título, la fecha de modificación, si está fijada (isPinned), el ID del mensaje fijado y la **URL del icono (iconUrl)**.  
    • **Message.kt:** Define la tabla de "Mensajes". Cada mensaje sabe a qué chat pertenece gracias a un chatId. Guarda el texto, la fecha y opcionalmente una imagen.    
 ### 2. El DAO - ChatDao.kt (El "Cómo")
-   DAO significa Data Access Object. Es la interfaz donde escribes las consultas SQL. Aquí es donde definimos que queremos las notas ordenadas primero por las fijadas y luego por fecha. Es el "traductor" entre el código Kotlin y la base de datos SQLite.  
+   DAO significa Data Access Object. Es la interfaz donde escribes las consultas SQL. Aquí definimos operaciones como insertar mensajes, renombrar chats y **actualizar el icono del chat**. Es el "traductor" entre el código Kotlin y la base de datos SQLite.  
 ### 3. La Base de Datos - AppDatabase.kt (El "Contenedor")
-   Es el corazón del sistema. Define qué tablas existen y la versión del esquema. Incluye la configuración fallbackToDestructiveMigration(), que es lo que nos permitió actualizar la base de datos a la versión 2 sin errores complejos al añadir el campo de "Fijar".
+   Es el corazón del sistema. Define qué tablas existen y la versión del esquema. Actualmente estamos en la **versión 7** tras añadir el soporte para iconos personalizados.
 ### 4. El Repositorio - ChatRepository.kt (El "Mediador")
-   Su trabajo es ser la única fuente de verdad para los datos. El resto de la app no le pregunta directamente a la base de datos, le pregunta al Repositorio. Esto facilita mucho si en el futuro decides guardar los datos en la nube (Firebase, por ejemplo), ya que solo tendrías que cambiar este archivo.
+   Su trabajo es ser la única fuente de verdad para los datos. Abstrae la base de datos Room. Cuando actualizamos un icono, el repositorio se asegura de que el DAO ejecute la orden correctamente.
 ### 5. El ViewModel - ChatViewModel.kt (El "Cerebro de la UI")
-   No es parte de la base de datos técnicamente, pero es quien pide los datos al Repositorio y los prepara para que Compose los pinte en pantalla. Maneja el "estado" (qué chat está seleccionado, qué mensajes se muestran ahora mismo).
-   
+   Maneja el estado. Cuando eliges una foto, el ViewModel recibe la URI y le pide al repositorio que la guarde. Como los chats se observan como un `Flow`, la pantalla se actualiza sola al instante.
+
+## 📸 Personalización de Iconos
+Hemos implementado la capacidad de poner fotos a tus chats usando la librería **Coil**.
+
+### ¿Cómo funciona técnicamente?
+1. **Selección:** Usamos el contrato `PickVisualMedia` de Android. Esto abre la galería de forma segura sin pedir permisos de almacenamiento globales.
+2. **Almacenamiento:** Solo guardamos la **URI** de la imagen en la tabla `note_chats`. 
+   * *Ubicación real:* La foto permanece en la galería del usuario. SoloChat solo guarda la "dirección" para leerla.
+3. **Visualización:** Usamos `AsyncImage` de Coil. Esta herramienta carga la imagen de forma eficiente, la recorta en círculo y gestiona la memoria para que la app no se vuelva lenta.
+4. **Fallback:** Si un chat no tiene foto, el sistema muestra automáticamente `Icons.Default.AccountCircle`.
+
 ## El tema
 Claro, aquí tienes el contenido estructurado y formateado en Markdown con tablas para una lectura clara.
 

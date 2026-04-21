@@ -1,5 +1,7 @@
 package github.com.nicolasmaldonadogomez.solochat.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,9 +19,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import github.com.nicolasmaldonadogomez.solochat.R
 import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
 import github.com.nicolasmaldonadogomez.solochat.ui.components.RenameDialog
@@ -52,6 +64,7 @@ fun HomeScreen(
     }
     
     var showRenameDialog by remember { mutableStateOf<NoteChat?>(null) }
+    var chatToChangeIcon by remember { mutableStateOf<NoteChat?>(null) }
     var isCreationDialog by remember { mutableStateOf(false) }
     var showSettingsMenu by remember { mutableStateOf(false) }
     var showThemesSubMenu by remember { mutableStateOf(false) }
@@ -59,6 +72,18 @@ fun HomeScreen(
     var showFontSizeSubMenu by remember { mutableStateOf(false) }
     val activity = LocalContext.current as? Activity
     val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            uri?.let {
+                chatToChangeIcon?.let { chat ->
+                    viewModel.updateChatIcon(chat.id, it.toString())
+                }
+            }
+            chatToChangeIcon = null
+        }
+    )
 
     Scaffold(
         topBar = {
@@ -249,6 +274,12 @@ fun HomeScreen(
                         showRenameDialog = chat 
                     },
                     onPin = { viewModel.togglePin(chat) },
+                    onChangeIcon = {
+                        chatToChangeIcon = chat
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
                     viewModel = viewModel,
                     fontSizeScale = fontSizeScale
                 )
@@ -289,6 +320,7 @@ fun ChatItem(
     onDelete: () -> Unit,
     onRename: () -> Unit,
     onPin: () -> Unit,
+    onChangeIcon: () -> Unit,
     viewModel: ChatViewModel,
     fontSizeScale: Float = 1.0f
 ) {
@@ -304,9 +336,36 @@ fun ChatItem(
                     onLongClick = { showMenu = true }
                 )
                 .padding((16 * fontSizeScale).dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Icono del Chat
+            Box(
+                modifier = Modifier
+                    .size((50 * fontSizeScale).dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { onChangeIcon() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (!chat.iconUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = chat.iconUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.cuaderno_ico),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        tint = Color.Unspecified
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width((16 * fontSizeScale).dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (chat.isPinned) {
@@ -349,6 +408,14 @@ fun ChatItem(
                     onRename()
                 },
                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.change_icon)) },
+                onClick = {
+                    showMenu = false
+                    onChangeIcon()
+                },
+                leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
             )
             DropdownMenuItem(
                 text = { Text(if (chat.isPinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) },

@@ -40,6 +40,10 @@ class ChatRepository(private val chatDao: ChatDao) {
         chatDao.updateChat(chat.copy(isPinned = !chat.isPinned))
     }
 
+    suspend fun updateChatIcon(chatId: Long, iconUrl: String?) {
+        chatDao.updateChatIcon(chatId, iconUrl)
+    }
+
     /**
      * Inserta un mensaje y actualiza el timestamp del chat asociado 
      * para que este suba al principio de la lista (estilo WhatsApp).

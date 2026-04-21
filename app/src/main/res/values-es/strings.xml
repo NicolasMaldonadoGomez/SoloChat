@@ -34,4 +34,5 @@
     <string name="font_size_normal">Normal</string>
     <string name="font_size_large">Grande</string>
     <string name="font_size_very_large">Muy grande</string>
+    <string name="change_icon">Cambiar icono</string>
 </resources>

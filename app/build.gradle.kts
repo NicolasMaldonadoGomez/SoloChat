@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.markdown.richtext)
     implementation(libs.markdown.ui)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Room
     implementation(libs.room.runtime)

@@ -68,6 +68,12 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
         }
     }
 
+    fun updateChatIcon(chatId: Long, iconUrl: String?) {
+        viewModelScope.launch {
+            repository.updateChatIcon(chatId, iconUrl)
+        }
+    }
+
     fun getLastMessageForChat(chatId: Long): Flow<Message?> {
         return repository.getLastMessageForChat(chatId)
     }

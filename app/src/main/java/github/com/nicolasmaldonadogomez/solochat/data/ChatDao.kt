@@ -18,6 +18,9 @@ interface ChatDao {
     @Query("SELECT * FROM note_chats ORDER BY isPinned DESC, lastModified DESC")
     fun getAllChats(): Flow<List<NoteChat>>
 
+    @Query("UPDATE note_chats SET iconUrl = :iconUrl WHERE id = :chatId")
+    suspend fun updateChatIcon(chatId: Long, iconUrl: String?)
+
     @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp DESC LIMIT 1")
     fun getLastMessageForChat(chatId: Long): Flow<Message?>
 
