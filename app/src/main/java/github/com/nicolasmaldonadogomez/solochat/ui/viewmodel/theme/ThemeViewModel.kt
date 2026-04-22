@@ -25,6 +25,13 @@ class ThemeViewModel(private val themePreferences: ThemePreferences) : ViewModel
             initialValue = 1.0f
         )
 
+    val traditionalViewState: StateFlow<Boolean> = themePreferences.traditionalViewFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
+
     fun changeTheme(newTheme: AppTheme) {
         viewModelScope.launch {
             themePreferences.saveTheme(newTheme)
@@ -34,6 +41,12 @@ class ThemeViewModel(private val themePreferences: ThemePreferences) : ViewModel
     fun changeFontSize(scale: Float) {
         viewModelScope.launch {
             themePreferences.saveFontSize(scale)
+        }
+    }
+
+    fun toggleTraditionalView(enabled: Boolean) {
+        viewModelScope.launch {
+            themePreferences.saveTraditionalView(enabled)
         }
     }
 }

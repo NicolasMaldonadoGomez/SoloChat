@@ -100,6 +100,20 @@ fun HomeScreen(
                         expanded = showSettingsMenu,
                         onDismissRequest = { showSettingsMenu = false }
                     ) {
+                        val isTraditional by themeViewModel.traditionalViewState.collectAsState()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.traditional_view)) },
+                            onClick = {
+                                themeViewModel.toggleTraditionalView(!isTraditional)
+                            },
+                            trailingIcon = {
+                                Checkbox(
+                                    checked = isTraditional,
+                                    onCheckedChange = { themeViewModel.toggleTraditionalView(it) }
+                                )
+                            }
+                        )
+                        HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.themes)) },
                             onClick = { 
@@ -212,6 +226,7 @@ fun HomeScreen(
                         onDismissRequest = { showFontSizeSubMenu = false }
                     ) {
                         val currentScale by themeViewModel.fontSizeState.collectAsState()
+                        
                         val sizes = listOf(
                             0.8f to stringResource(R.string.font_size_very_small),
                             0.9f to stringResource(R.string.font_size_small),

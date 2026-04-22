@@ -37,4 +37,6 @@
     <string name="font_size_large">Large</string>
     <string name="font_size_very_large">Very Large</string>
     <string name="change_icon">Change icon</string>
+    <string name="traditional_view">Traditional Chat View</string>
+    <string name="fullscreen_formula">Fullscreen Formula</string>
 </resources>

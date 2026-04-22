@@ -16,6 +16,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class ThemePreferences(private val context: Context) {
     private val themeKey = stringPreferencesKey("app_theme")
     private val fontSizeKey = floatPreferencesKey("font_size_scale")
+    private val traditionalViewKey = androidx.datastore.preferences.core.booleanPreferencesKey("traditional_view")
 
     val themeFlow: Flow<AppTheme> = context.dataStore.data.map { preferences ->
         val themeString = preferences[themeKey] ?: AppTheme.SYSTEM.name
@@ -30,6 +31,10 @@ class ThemePreferences(private val context: Context) {
         preferences[fontSizeKey] ?: 1.0f
     }
 
+    val traditionalViewFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[traditionalViewKey] ?: true
+    }
+
     suspend fun saveTheme(theme: AppTheme) {
         context.dataStore.edit { preferences ->
             preferences[themeKey] = theme.name
@@ -39,6 +44,12 @@ class ThemePreferences(private val context: Context) {
     suspend fun saveFontSize(scale: Float) {
         context.dataStore.edit { preferences ->
             preferences[fontSizeKey] = scale
+        }
+    }
+
+    suspend fun saveTraditionalView(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[traditionalViewKey] = enabled
         }
     }
 }

@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import github.com.nicolasmaldonadogomez.solochat.data.AppDatabase
 import github.com.nicolasmaldonadogomez.solochat.data.ChatRepository
 import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
@@ -36,7 +37,19 @@ class MainActivity : AppCompatActivity() {
             val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
             
             SoloChatTheme(theme = currentTheme, fontSizeScale = fontSizeScale) {
-                var currentChat by remember { mutableStateOf<NoteChat?>(null) }
+                // Estado de navegación persistente
+                var currentChatId by rememberSaveable { mutableStateOf<Long?>(null) }
+                
+                // Sincronizar el ViewModel con el estado persistido tras una rotación
+                LaunchedEffect(currentChatId) {
+                    currentChatId?.let { chatViewModel.selectChat(it) }
+                }
+
+                // Buscar el objeto NoteChat basado en el ID persistido
+                val chats by chatViewModel.allChats.collectAsState()
+                val currentChat = remember(currentChatId, chats) {
+                    chats.find { it.id == currentChatId }
+                }
 
                 if (currentChat == null) {
                     HomeScreen(
@@ -44,22 +57,20 @@ class MainActivity : AppCompatActivity() {
                         themeViewModel = themeViewModel,
                         onChatClick = { chat ->
                             chatViewModel.selectChat(chat.id)
-                            currentChat = chat
+                            currentChatId = chat.id
                         },
                         onChatCreated = { chat ->
                             chatViewModel.selectChat(chat.id)
-                            currentChat = chat
+                            currentChatId = chat.id
                         }
                     )
                 } else {
                     ChatScreen(
-                        chat = currentChat!!,
+                        chat = currentChat,
                         viewModel = chatViewModel,
                         themeViewModel = themeViewModel,
-                        onBack = { currentChat = null },
-                        onChatUpdated = { updatedChat ->
-                            currentChat = updatedChat
-                        }
+                        onBack = { currentChatId = null },
+                        onChatUpdated = { /* El Flow de chats ya actualiza currentChat */ }
                     )
                 }
             }

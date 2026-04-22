@@ -37,4 +37,6 @@
     <string name="font_size_large">Grande</string>
     <string name="font_size_very_large">Muy grande</string>
     <string name="change_icon">Cambiar icono</string>
+    <string name="traditional_view">Vista de Chat Tradicional</string>
+    <string name="fullscreen_formula">Fórmula a Pantalla Completa</string>
 </resources>

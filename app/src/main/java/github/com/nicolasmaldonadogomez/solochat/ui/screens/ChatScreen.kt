@@ -18,8 +18,11 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -37,10 +40,12 @@ import github.com.nicolasmaldonadogomez.solochat.data.NoteChat
 import github.com.nicolasmaldonadogomez.solochat.ui.components.RenameDialog
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.ChatViewModel
 import github.com.nicolasmaldonadogomez.solochat.ui.viewmodel.theme.ThemeViewModel
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import github.com.nicolasmaldonadogomez.solochat.utils.ImageStorageUtils
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.material3.RichText
 import java.io.File
+import github.com.nicolasmaldonadogomez.solochat.ui.components.MathJaxView
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -55,14 +60,15 @@ fun ChatScreen(
 ) {
     val messages by viewModel.selectedChatMessages.collectAsState()
     val fontSizeScale by themeViewModel.fontSizeState.collectAsState()
+    val isTraditional by themeViewModel.traditionalViewState.collectAsState()
     val context = LocalContext.current
     val listState = rememberLazyListState()
     var textState by remember { mutableStateOf("") }
     var showRenameDialog by remember { mutableStateOf(false) }
     var messageToEdit by remember { mutableStateOf<Message?>(null) }
     var messageToOptions by remember { mutableStateOf<Message?>(null) }
-    var selectedImageUrl by remember { mutableStateOf<String?>(null) }
-    var pendingImageUrl by remember { mutableStateOf<String?>(null) }
+    var selectedImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
     var tempCameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
@@ -210,7 +216,8 @@ fun ChatScreen(
                         message = message,
                         onLongClick = { messageToOptions = message },
                         onImageClick = { selectedImageUrl = it },
-                        fontSizeScale = fontSizeScale
+                        fontSizeScale = fontSizeScale,
+                        isTraditional = isTraditional
                     )
                 }
             }
@@ -289,14 +296,18 @@ fun MessageBubble(
     message: Message,
     onLongClick: () -> Unit,
     onImageClick: (String) -> Unit,
-    fontSizeScale: Float = 1.0f
+    fontSizeScale: Float = 1.0f,
+    isTraditional: Boolean = true
 ) {
-    val isMine = true 
+    val isMine = true // Mensajes simples, asumimos derecha para este ejemplo o lógica del repo
+    var showRawLatex by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
     ) {
+        val isLatex = isProbablyLaTeX(message.text)
+        
         Surface(
             color = if (isMine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -308,11 +319,22 @@ fun MessageBubble(
             ),
             tonalElevation = 1.dp,
             modifier = Modifier
-                .widthIn(max = (300 * fontSizeScale).dp)
-                .combinedClickable(
-                    onClick = { /* Opcional: ver detalles */ },
-                    onLongClick = onLongClick
-                )
+                .fillMaxWidth(if (isTraditional) 0.85f else 1f)
+                .pointerInput(isLatex, showRawLatex) {
+                    detectTapGestures(
+                        onTap = { 
+                            if (isLatex && !showRawLatex) {
+                                onImageClick("latex:${message.text}")
+                            }
+                        },
+                        onDoubleTap = {
+                            if (isLatex) {
+                                showRawLatex = !showRawLatex
+                            }
+                        },
+                        onLongPress = { onLongClick() }
+                    )
+                }
         ) {
             Column(modifier = Modifier.padding((8 * fontSizeScale).dp)) {
                 if (!message.imageUrl.isNullOrEmpty()) {
@@ -331,7 +353,51 @@ fun MessageBubble(
 
                 if (message.text.isNotBlank()) {
                     RichText {
-                        Markdown(content = message.text)
+                        // Mostramos el texto si NO es LaTeX o si el usuario quiere ver el código
+                        if (showRawLatex || !isLatex) {
+                            Markdown(content = message.text)
+                        }
+                        
+                        // Soporte para LaTeX mediante MathJax
+                        if (isLatex && !showRawLatex) {
+                            val formulaLines = message.text.count { it == '\n' } + 1
+                            val formulaComplexity = message.text.length / 30 
+                            val dynamicHeight = (40 + (formulaLines * 15) + (formulaComplexity * 6)).coerceIn(60, 400)
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(dynamicHeight.dp)
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                MathJaxView(
+                                    latex = message.text,
+                                    modifier = Modifier.fillMaxSize(),
+                                    textColor = if (isMine) "black" else "white"
+                                )
+                                // ESCUDO DE GESTOS QUE NO BLOQUEA EL SCROLL VERTICAL
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Transparent)
+                                        .pointerInput(isLatex, showRawLatex) {
+                                            detectTapGestures(
+                                                onTap = { 
+                                                    if (isLatex && !showRawLatex) {
+                                                        onImageClick("latex:${message.text}")
+                                                    }
+                                                },
+                                                onDoubleTap = {
+                                                    if (isLatex) {
+                                                        showRawLatex = !showRawLatex
+                                                    }
+                                                },
+                                                onLongPress = { onLongClick() }
+                                            )
+                                        }
+                                )
+                            }
+                        }
                     }
                 }
                 
@@ -535,6 +601,30 @@ fun shouldShowDateHeader(message: Message, prevMessage: Message?): Boolean {
            cal1.get(Calendar.DAY_OF_YEAR) != cal2.get(Calendar.DAY_OF_YEAR)
 }
 
+private fun isProbablyLaTeX(text: String): Boolean {
+    // 1. Siempre es LaTeX si tiene comandos (\...) o estructuras matemáticas (^, _, {})
+    if (text.contains(Regex("""\\[a-z]+|[\^_{}]"""))) return true
+    
+    // 2. Buscamos pares de $...$
+    // La expresión regular busca el contenido más corto entre dos símbolos de dólar
+    val matches = Regex("""\$([^$]+)\$""").findAll(text)
+    
+    for (match in matches) {
+        val content = match.groupValues[1]
+        
+        // REGLA 1: Si no hay espacios ni saltos de línea, es LaTeX (ej: $123$, $x$, $10'000$)
+        // Esto permite que $10'000$ sea fórmula, pero $10'000 no lo sea (falta el $ de cierre)
+        if (!content.contains(Regex("""[\s\n]"""))) return true
+        
+        // REGLA 2: Si hay espacios, solo es LaTeX si no empieza ni termina con espacio 
+        // Y contiene al menos una letra o comando (ej: $x + y = 10$)
+        // Esto evita que "Tengo $10 y $20" se detecte como LaTeX porque "10 y " termina en espacio
+        if (content.trim() == content && content.contains(Regex("""[a-zA-Z\\]"""))) return true
+    }
+    
+    return false
+}
+
 private fun formatTimestamp(timestamp: Long): String {
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
     return sdf.format(Date(timestamp))
@@ -550,15 +640,36 @@ fun FullscreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
-                .clickable { onDismiss() },
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { onDismiss() }
+                ),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+            if (imageUrl.startsWith("latex:")) {
+                val latexCode = imageUrl.removePrefix("latex:")
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    MathJaxView(
+                        latex = latexCode,
+                        modifier = Modifier.fillMaxSize(),
+                        textColor = "white",
+                        isInteractive = true,
+                        onTap = { onDismiss() }
+                    )
+                }
+            } else {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
     }
 }
