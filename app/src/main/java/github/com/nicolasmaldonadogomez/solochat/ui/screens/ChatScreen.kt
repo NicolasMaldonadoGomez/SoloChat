@@ -615,11 +615,6 @@ private fun isProbablyLaTeX(text: String): Boolean {
     return false
 }
 
-private fun formatTimestamp(timestamp: Long): String {
-    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
-
 @Composable
 fun FullscreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
     Dialog(
