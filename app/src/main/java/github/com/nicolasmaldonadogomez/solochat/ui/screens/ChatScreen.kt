@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -49,7 +50,7 @@ import github.com.nicolasmaldonadogomez.solochat.ui.components.MathJaxView
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(
     chat: NoteChat,
@@ -67,7 +68,7 @@ fun ChatScreen(
     var showRenameDialog by remember { mutableStateOf(false) }
     var messageToEdit by remember { mutableStateOf<Message?>(null) }
     var messageToOptions by remember { mutableStateOf<Message?>(null) }
-    var selectedImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedImageUrl by rememberSaveable { mutableStateOf<Any?>(null) }
     var pendingImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
     var tempCameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
@@ -117,14 +118,62 @@ fun ChatScreen(
 
     val pinnedMessage = messages.find { it.id == chat.pinnedMessageId }
 
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                viewModel.updateChatIcon(context, chat, it)
+            }
+        }
+    )
+
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
                     title = {
-                        Column(modifier = Modifier.clickable { showRenameDialog = true }) {
-                            Text(chat.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(stringResource(R.string.online), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { showRenameDialog = true }
+                        ) {
+                            // Icono del Chat en la TopBar
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .combinedClickable(
+                                        onClick = { 
+                                            selectedImageUrl = chat.iconUrl ?: R.drawable.cuaderno_ico
+                                        },
+                                        onDoubleClick = { photoPickerLauncher.launch("image/*") },
+                                        onLongClick = { photoPickerLauncher.launch("image/*") }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!chat.iconUrl.isNullOrEmpty()) {
+                                    AsyncImage(
+                                        model = chat.iconUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.cuaderno_ico),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(0.7f),
+                                        tint = Color.Unspecified
+                                    )
+                                }
+                            }
+                            
+                            Spacer(Modifier.width(12.dp))
+                            
+                            Column {
+                                Text(chat.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.online), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     },
                     navigationIcon = {
@@ -616,7 +665,7 @@ private fun isProbablyLaTeX(text: String): Boolean {
 }
 
 @Composable
-fun FullscreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
+fun FullscreenImageDialog(imageUrl: Any, onDismiss: () -> Unit) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -632,7 +681,7 @@ fun FullscreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
                 ),
             contentAlignment = Alignment.Center
         ) {
-            if (imageUrl.startsWith("latex:")) {
+            if (imageUrl is String && imageUrl.startsWith("latex:")) {
                 val latexCode = imageUrl.removePrefix("latex:")
                 Box(
                     modifier = Modifier

@@ -39,4 +39,6 @@
     <string name="change_icon">Cambiar icono</string>
     <string name="traditional_view">Vista de Chat Tradicional</string>
     <string name="fullscreen_formula">Fórmula a Pantalla Completa</string>
+    <string name="chat_format">Formato Chat</string>
+    <string name="exit_app">Apagar Aplicación</string>
 </resources>

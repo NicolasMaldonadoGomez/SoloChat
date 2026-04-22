@@ -39,4 +39,6 @@
     <string name="change_icon">Change icon</string>
     <string name="traditional_view">Traditional Chat View</string>
     <string name="fullscreen_formula">Fullscreen Formula</string>
+    <string name="chat_format">Chat Format</string>
+    <string name="exit_app">Exit Application</string>
 </resources>

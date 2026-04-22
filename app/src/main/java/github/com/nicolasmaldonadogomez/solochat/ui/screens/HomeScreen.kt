@@ -127,9 +127,11 @@ fun HomeScreen(
                             showThemesSubMenu = false
                             showLanguagesSubMenu = false
                             showFontSizeSubMenu = false
-                        }
+                        },
+                        modifier = Modifier.width(280.dp)
                     ) {
                         // Menú de Temas
+                        val currentTheme by themeViewModel.themeState.collectAsState()
                         DropdownMenuItem(
                             text = { 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -143,7 +145,15 @@ fun HomeScreen(
                         if (showThemesSubMenu) {
                             github.com.nicolasmaldonadogomez.solochat.ui.theme.AppTheme.values().forEach { theme ->
                                 DropdownMenuItem(
-                                    text = { Text("  • ${theme.name}", style = MaterialTheme.typography.bodySmall) },
+                                    text = { 
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("  • ${theme.name}", style = MaterialTheme.typography.bodySmall)
+                                            if (currentTheme == theme) {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                            }
+                                        }
+                                    },
                                     onClick = {
                                         themeViewModel.changeTheme(theme)
                                         showSettingsMenu = false
@@ -153,6 +163,7 @@ fun HomeScreen(
                         }
 
                         // Menú de Idiomas
+                        val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags()
                         DropdownMenuItem(
                             text = { 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -166,7 +177,15 @@ fun HomeScreen(
                         if (showLanguagesSubMenu) {
                             listOf("es" to "Español", "en" to "English").forEach { (code, name) ->
                                 DropdownMenuItem(
-                                    text = { Text("  • $name", style = MaterialTheme.typography.bodySmall) },
+                                    text = { 
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("  • $name", style = MaterialTheme.typography.bodySmall)
+                                            if (currentLocale.startsWith(code)) {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                            }
+                                        }
+                                    },
                                     onClick = {
                                         val appLocale = androidx.core.os.LocaleListCompat.forLanguageTags(code)
                                         androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale)
@@ -176,7 +195,7 @@ fun HomeScreen(
                             }
                         }
 
-                        // Tamaño de Fuente
+                        // Tamaño de Fuente (5 niveles)
                         DropdownMenuItem(
                             text = { 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -188,9 +207,23 @@ fun HomeScreen(
                             onClick = { showFontSizeSubMenu = !showFontSizeSubMenu }
                         )
                         if (showFontSizeSubMenu) {
-                            listOf(0.8f to "Pequeño", 1.0f to "Normal", 1.2f to "Grande").forEach { (scale, name) ->
+                            listOf(
+                                0.8f to stringResource(R.string.font_size_very_small),
+                                0.9f to stringResource(R.string.font_size_small),
+                                1.0f to stringResource(R.string.font_size_normal),
+                                1.1f to stringResource(R.string.font_size_large),
+                                1.2f to stringResource(R.string.font_size_very_large)
+                            ).forEach { (scale, name) ->
                                 DropdownMenuItem(
-                                    text = { Text("  • $name", style = MaterialTheme.typography.bodySmall) },
+                                    text = { 
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("  • $name", style = MaterialTheme.typography.bodySmall)
+                                            if (fontSizeScale == scale) {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                            }
+                                        }
+                                    },
                                     onClick = {
                                         themeViewModel.changeFontSize(scale)
                                         showSettingsMenu = false
@@ -198,6 +231,36 @@ fun HomeScreen(
                                 )
                             }
                         }
+
+                        // Formato Chat
+                        val isTraditional by themeViewModel.traditionalViewState.collectAsState()
+                        DropdownMenuItem(
+                            text = { 
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(stringResource(R.string.chat_format))
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Checkbox(
+                                        checked = isTraditional,
+                                        onCheckedChange = null
+                                    )
+                                }
+                            },
+                            onClick = { 
+                                themeViewModel.toggleTraditionalView(!isTraditional)
+                            },
+                            leadingIcon = { Icon(Icons.Default.ChatBubble, contentDescription = null) }
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        // Apagar Aplicación
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.exit_app)) },
+                            onClick = {
+                                activity?.finish()
+                            },
+                            leadingIcon = { Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
+                        )
                     }
                 }
             )
@@ -243,7 +306,15 @@ fun HomeScreen(
                 onDismiss = { isCreationDialog = false },
                 onConfirm = { title ->
                     scope.launch {
-                        viewModel.createChat(title)
+                        val newChatId = viewModel.createChat(title)
+                        // Buscamos el chat recién creado en la lista para navegar a él
+                        val newChat = chats.find { it.id == newChatId }
+                        if (newChat != null) {
+                            onChatCreated(newChat)
+                        } else {
+                            // Si por timing no está en la lista aún, creamos un objeto temporal con el ID
+                            onChatCreated(NoteChat(id = newChatId, title = title))
+                        }
                     }
                     isCreationDialog = false
                 },
