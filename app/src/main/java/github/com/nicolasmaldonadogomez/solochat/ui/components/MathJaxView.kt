@@ -8,14 +8,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 
-@SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun MathJaxView(
     latex: String,
     modifier: Modifier = Modifier,
     textColor: String = "white",
     isInteractive: Boolean = false,
-    onTap: (() -> Unit)? = null
+    onTap: (() -> Unit)? = null,
+    onDoubleTap: (() -> Unit)? = null,
+    onLongPress: (() -> Unit)? = null
 ) {
     AndroidView(
         modifier = modifier,
@@ -25,26 +27,20 @@ fun MathJaxView(
                 webViewClient = WebViewClient()
                 setBackgroundColor(0) 
                 
-                if (isInteractive) {
-                    isVerticalScrollBarEnabled = true
-                    isHorizontalScrollBarEnabled = true
-                    settings.setSupportZoom(true)
-                    settings.displayZoomControls = false
-                    
-                    addJavascriptInterface(object {
-                        @JavascriptInterface
-                        fun performClick() {
-                            post { onTap?.invoke() }
-                        }
-                    }, "AndroidInterface")
-                } else {
-                    // En el chat: Totalmente inerte
-                    isClickable = false
-                    isFocusable = false
-                    isEnabled = false
-                    // Importante: No consumir toques para que pasen a Compose
-                    setOnTouchListener { _, _ -> false }
-                }
+                isVerticalScrollBarEnabled = isInteractive
+                isHorizontalScrollBarEnabled = true
+                settings.setSupportZoom(isInteractive)
+                settings.displayZoomControls = false
+
+                // Puente de comunicación JS -> Kotlin
+                addJavascriptInterface(object {
+                    @JavascriptInterface
+                    fun onSingleTap() { post { onTap?.invoke() } }
+                    @JavascriptInterface
+                    fun onDoubleTap() { post { onDoubleTap?.invoke() } }
+                    @JavascriptInterface
+                    fun onLongPress() { post { onLongPress?.invoke() } }
+                }, "AndroidInterface")
             }
         },
         update = { webView ->
@@ -64,31 +60,62 @@ fun MathJaxView(
                             padding: 10px;
                             width: 100%;
                             height: 100%;
-                            ${if (isInteractive) "overflow: auto;" else "overflow: hidden;"}
+                            overflow-x: auto;
+                            overflow-y: ${if (isInteractive) "auto" else "hidden"};
                             -webkit-user-select: none;
                             user-select: none;
+                            -webkit-tap-highlight-color: transparent;
                         }
                         .math-content { font-size: 18px; text-align: center; min-width: 100%; }
                     </style>
                     <script>
                         window.MathJax = {
-                            tex: { 
-                                inlineMath: [['$', '$']], 
-                                displayMath: [['$$', '$$']] 
-                            },
-                            options: {
-                                renderActions: {
-                                    addMenu: [] // DESHABILITA EL MENÚ DE MATHJAX
-                                }
-                            },
+                            tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
+                            options: { renderActions: { addMenu: [] } }, // Desactivar menú MathJax
                             chtml: { scale: 1.0, displayAlign: 'center' }
                         };
 
-                        if ($isInteractive) {
-                            document.documentElement.onclick = function() {
-                                AndroidInterface.performClick();
-                            };
-                        }
+                        let lastTap = 0;
+                        let tapTimeout;
+                        let longPressTimeout;
+                        let isDragging = false;
+                        let startX, startY;
+
+                        document.addEventListener('touchstart', (e) => {
+                            isDragging = false;
+                            startX = e.touches[0].clientX;
+                            startY = e.touches[0].clientY;
+                            longPressTimeout = setTimeout(() => {
+                                if (!isDragging) AndroidInterface.onLongPress();
+                            }, 600);
+                        }, false);
+
+                        document.addEventListener('touchmove', (e) => {
+                            let diffX = Math.abs(e.touches[0].clientX - startX);
+                            let diffY = Math.abs(e.touches[0].clientY - startY);
+                            // Si se mueve más de 10px, es un arrastre (scroll), no un clic/longpress
+                            if (diffX > 10 || diffY > 10) {
+                                isDragging = true;
+                                clearTimeout(longPressTimeout);
+                            }
+                        }, false);
+
+                        document.addEventListener('touchend', (e) => {
+                            clearTimeout(longPressTimeout);
+                            if (isDragging) return;
+
+                            let now = Date.now();
+                            if (now - lastTap < 300) {
+                                clearTimeout(tapTimeout);
+                                AndroidInterface.onDoubleTap();
+                                lastTap = 0;
+                            } else {
+                                lastTap = now;
+                                tapTimeout = setTimeout(() => {
+                                    AndroidInterface.onSingleTap();
+                                }, 300);
+                            }
+                        }, false);
                     </script>
                     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
                 </head>

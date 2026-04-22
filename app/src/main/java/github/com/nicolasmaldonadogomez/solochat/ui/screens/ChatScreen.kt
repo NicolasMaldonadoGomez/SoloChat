@@ -373,28 +373,18 @@ fun MessageBubble(
                                 MathJaxView(
                                     latex = message.text,
                                     modifier = Modifier.fillMaxSize(),
-                                    textColor = if (isMine) "black" else "white"
-                                )
-                                // ESCUDO DE GESTOS QUE NO BLOQUEA EL SCROLL VERTICAL
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Transparent)
-                                        .pointerInput(isLatex, showRawLatex) {
-                                            detectTapGestures(
-                                                onTap = { 
-                                                    if (isLatex && !showRawLatex) {
-                                                        onImageClick("latex:${message.text}")
-                                                    }
-                                                },
-                                                onDoubleTap = {
-                                                    if (isLatex) {
-                                                        showRawLatex = !showRawLatex
-                                                    }
-                                                },
-                                                onLongPress = { onLongClick() }
-                                            )
+                                    textColor = if (isMine) "black" else "white",
+                                    onTap = { 
+                                        if (isLatex && !showRawLatex) {
+                                            onImageClick("latex:${message.text}")
                                         }
+                                    },
+                                    onDoubleTap = {
+                                        if (isLatex) {
+                                            showRawLatex = !showRawLatex
+                                        }
+                                    },
+                                    onLongPress = { onLongClick() }
                                 )
                             }
                         }
